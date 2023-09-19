@@ -1,0 +1,20 @@
+from enum import Enum
+
+
+class SPECIAL_FOLDER(Enum):
+    APP_DATA_LOCAL_LOW = 4
+    APP_DATA_ROAMING = 5
+    APP_DATA_LOCAL = 3
+    PROGRAM_FILES = 11
+    USER_PROFILE = 1
+    DOCUMENTS = 7
+    DOWNLOADS = 6
+    APP_DATA = 2
+    PICTURES = 9
+    DESKTOP = 0
+    VIDEOS = 8
+    MUSIC = 10
+
+
+class ENVIRONMENT_VARIABLE(Enum):
+    USER_NAME = 0
