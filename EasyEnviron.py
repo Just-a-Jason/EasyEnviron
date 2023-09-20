@@ -1,5 +1,5 @@
+from Environment import SPECIAL_FOLDER, ENVIRONMENT_VARIABLE
 from Helpers.abstract_class import Abstract
-from Environment import SPECIAL_FOLDER
 from Helpers.file import File, FileHelper
 from dir_search import DIR_SEARCH
 from os import environ as env
@@ -14,6 +14,10 @@ class ESV(Abstract):
     '''
     def CreateFile(path) -> File:
         return FileHelper.Create(path)
+
+    def SYSTEM(command: str) -> None:
+        from os import system
+        system(command)
 
     def GetSpecialFolder(special_folder: SPECIAL_FOLDER) -> str:
         if special_folder == SPECIAL_FOLDER.USER_PROFILE:
@@ -54,7 +58,13 @@ class ESV(Abstract):
                 return userProfile + '\\Music\\'
 
             case SPECIAL_FOLDER.PROGRAM_FILES:
-                return 'C:\\Program Files\\'
+                return env['PROGRAMFILES'] + '\\'
+
+            case SPECIAL_FOLDER.PROGRAM_FILES_X86:
+                return env['PROGRAMFILES(X86)'] + '\\'
+
+            case SPECIAL_FOLDER.WINDIR:
+                return env['WINDIR']
 
     def GSF(special_folder: SPECIAL_FOLDER) -> str:
         '''
@@ -65,11 +75,61 @@ class ESV(Abstract):
     def GetFile(path: str) -> File:
         return FileHelper.GetFileInfo(path)
 
-    def GFFSF(special_folder: SPECIAL_FOLDER, search: DIR_SEARCH = DIR_SEARCH.DEFAULT):
-        return ESV.GetFilesFromSpecialFolder(special_folder=special_folder, search=search)
+    def GetEnvironmentVariable(variable: str | ENVIRONMENT_VARIABLE) -> str:
+        if type(variable) is ENVIRONMENT_VARIABLE:
+            match variable:
+                case ENVIRONMENT_VARIABLE.USER_NAME:
+                    variable = 'USERNAME'
+                case ENVIRONMENT_VARIABLE.SYSTEM_LANG:
+                    variable = 'LANG'
+                case ENVIRONMENT_VARIABLE.COMPUTER_NAME:
+                    variable = 'COMPUTERNAME'
+                case ENVIRONMENT_VARIABLE.SYSTEM_DRIVE:
+                    variable = 'SYSTEMDRIVE'
 
-    def GetEnvironmentVariable(variable: str):
-        return env['USERNAME']
+        if variable in env.keys():
+            return env[variable]
+        else:
+            raise KeyError(
+                f'Variable "{variable} does not exists on this system"')
 
-    def GEV():
-        pass
+    def Exists(file: File | str) -> bool:
+        from os import path
+
+        if type(file) is File:
+            return path.exists(file.fullPath)
+
+        return path.exists(file)
+
+    def GEV(variable: str | ENVIRONMENT_VARIABLE) -> str:
+        return ESV.GetEnvironmentVariable(variable)
+
+    def ReadDirectory(path: str | SPECIAL_FOLDER, search: DIR_SEARCH = DIR_SEARCH.DEFAULT) -> List[File]:
+        from os import listdir
+
+        if type(path) is SPECIAL_FOLDER:
+            path = ESV.GetSpecialFolder(path)
+
+        if not ESV.Exists(path):
+            raise FileNotFoundError(f'Directory: {path}does not exist.')
+
+        files: List[str] = listdir(path)
+
+        from os.path import isfile
+
+        if search == DIR_SEARCH.FILES_ONLY:
+            files = [FileHelper.GetFileInfo(path+file)
+                     for file in files if isfile(path+file)]
+
+        elif search == DIR_SEARCH.DEFAULT:
+            files = [FileHelper.GetFileInfo(
+                path+file, not isfile(path+file)) for file in files]
+
+        elif search == DIR_SEARCH.FOLDERS_ONLY:
+            files = [FileHelper.GetFileInfo(path+file, True)
+                     for file in files if not isfile(path+file)]
+
+        return files
+
+    def RD(path: str | SPECIAL_FOLDER, search: DIR_SEARCH = DIR_SEARCH.DEFAULT) -> List[File]:
+        return ESV.ReadDirectory(path, search)
